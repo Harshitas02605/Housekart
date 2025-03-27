@@ -1,5 +1,12 @@
 from flask_restful import Resource, Api, reqparse, fields, marshal_with
 from application.models import db, Service, ServiceProfessional, ServiceRequest, Customer
+from flask_security import  auth_required, roles_required
+from flask import jsonify
+import os
+from flask import request, current_app
+from werkzeug.utils import secure_filename
+
+
 
 
 api = Api(prefix='/api')
@@ -17,6 +24,7 @@ service_professional_parser.add_argument('experience', type=str, required=True, 
 service_professional_parser.add_argument('document', type=str, required=True, help='Document cannot be blank')
 service_professional_parser.add_argument('address', type=str, required=True, help='Address cannot be blank')
 service_professional_parser.add_argument('pincode', type=str, required=True, help='Pincode cannot be blank')
+service_professional_parser.add_argument('user_id', type=str, required=True, help='User Id cannot be blank')
 
 #customerparser
 customer_parser = reqparse.RequestParser()
@@ -26,6 +34,7 @@ customer_parser.add_argument('password', type=str, required=True, help='Password
 customer_parser.add_argument('contact', type=str, required=True, help='Contact cannot be blank')
 customer_parser.add_argument('address', type=str, required=True, help='Address cannot be blank')
 customer_parser.add_argument('pincode', type=str, required=True, help='Pincode cannot be blank')
+customer_parser.add_argument('user_id', type=str, required=True, help='User Id cannot be blank')
 
 #serviceparser
 service_parser = reqparse.RequestParser()
@@ -47,6 +56,7 @@ service_request_parser.add_argument('remarks', type=str, required=False)
 #Fields
 # Service Professional Fields
 service_professional_fields = {
+    'user_id':fields.String,
     'email': fields.String,
     'full_name': fields.String,
     'age': fields.Integer,
@@ -58,13 +68,14 @@ service_professional_fields = {
     'document': fields.String,
     'address': fields.String,
     'pincode': fields.String,
-    'date_created': fields.String(attribute=lambda x: x.date_created.strftime('%Y-%m-%d')),
+    'date_created': fields.String(attribute=lambda x: x.get('date_created').strftime('%Y-%m-%d') if x.get('date_created') else None),
     'is_blocked': fields.Boolean,
     'is_approved': fields.Boolean
 }
 
 # Customer Fields
 customer_fields = {
+    'user_id':fields.String,
     'email': fields.String,
     'full_name': fields.String,
     'password': fields.String,
@@ -103,12 +114,29 @@ class ServiceProfessionalAPI(Resource):
         all_service_professional = ServiceProfessional.query.all()
         return all_service_professional
     
+
+    @marshal_with(service_professional_fields)
     def post(self):
-        args = service_professional_parser.parse_args()
+        # Extract form data
+        args = request.form.to_dict()
+
+        # Extract and save file
+        uploaded_file = request.files.get('document')
+        if not uploaded_file:
+            return {'error': 'Document is required'}, 400
+        
+        # Access UPLOAD_FOLDER using current_app
+        UPLOAD_FOLDER = current_app.config['UPLOAD_FOLDER']
+        filename = secure_filename(f"{args['full_name']}_document.{uploaded_file.filename.split('.')[-1]}")
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        uploaded_file.save(file_path)
+        args['document'] = filename
+        
         service_professional = ServiceProfessional(**args)
         db.session.add(service_professional)
         db.session.commit()
-        return {'message' : 'Service Professional was successfully added to database'}
+        return {'message': 'Service Professional was successfully added to database'}
+
 
 class CustomerAPI(Resource):
     @marshal_with(customer_fields)
@@ -121,20 +149,56 @@ class CustomerAPI(Resource):
         customer = Customer(**args)
         db.session.add(customer)
         db.session.commit()
-        return {'message' : 'Customer was successfully added to database'}
+        return {'message' : 'Customer was successfully added to database'}, 201
 
 class ServiceAPI(Resource):
+    @auth_required('token')
     @marshal_with(service_fields)
     def get(self):
         all_services = Service.query.all()
-        return all_services
+        services_data = [
+            {
+                "id": service.id,
+                "name": service.name,
+                "description": service.description,
+                "price": service.price,
+                "time_required": service.time_required
+            }
+            for service in all_services
+        ]
+        return jsonify(services_data)
     
+    @auth_required('token')
+    @roles_required('admin')
     def post(self):
         args = service_parser.parse_args()
         service = Service(**args)
         db.session.add(service)
         db.session.commit()
-        return {'message' : 'Service was successfully added to database'}
+        return {'message': 'Service was successfully added to the database'}
+
+    @auth_required('token')
+    @roles_required('admin')
+    def put(self, service_id):
+        args = service_parser.parse_args()
+        service = Service.query.get(service_id)
+        if not service:
+            return {'error': 'Service not found'}, 404
+        for key, value in args.items():
+            setattr(service, key, value)
+        db.session.commit()
+        return {'message': 'Service updated successfully'}
+
+    @auth_required('token')
+    @roles_required('admin')
+    def delete(self, service_id):
+        service = Service.query.get(service_id)
+        if not service:
+            return {'error': 'Service not found'}, 404
+        db.session.delete(service)
+        db.session.commit()
+        return {'message': 'Service deleted successfully'}
+
 
 class ServiceRequestAPI(Resource):
     @marshal_with(service_request_fields)
@@ -148,6 +212,8 @@ class ServiceRequestAPI(Resource):
         db.session.add(service_request)
         db.session.commit()
         return {'message' : 'Service Request was successfully added to database'}
+
+    
     
 
     

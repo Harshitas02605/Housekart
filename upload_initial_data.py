@@ -16,13 +16,6 @@ try:
 
         if not datastore.find_user(email="admin@housekart.com"):
             datastore.create_user(email="admin@housekart.com", password=generate_password_hash("admin"), roles=[admin_role])
-
-        if not datastore.find_user(email="customer1@gmail.com"):
-            datastore.create_user(email="customer1@gmail.com", password=generate_password_hash("customer1"), roles=[customer_role])
-
-        if not datastore.find_user(email="professional1@gmail.com"):
-            datastore.create_user(email="professional1@gmail.com", password=generate_password_hash("professional"), roles=[professional_role], active = False)
-
         db.session.commit()
         print("Users and Roles created successfully!")
 
