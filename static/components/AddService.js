@@ -9,7 +9,7 @@ export default {
           </div>
   
           <div class="form-group">
-            <label for="description">Description</label>
+            <label for="description">Description (This description will help professionals to understand service)</label>
             <textarea class="form-control" id="description" v-model="service.description" required></textarea>
           </div>
 
@@ -19,7 +19,7 @@ export default {
           </div>
   
           <div class="form-group">
-            <label for="price">Price</label>
+            <label for="price">Price (in Rupees)</label>
             <input type="number" class="form-control" id="price" v-model="service.price" required>
           </div>
   
@@ -91,7 +91,7 @@ export default {
               });
       
               if (res.ok) {
-                this.$root.showFlash(this.isEditing ? 'Service updated!' : 'Service added!', 'alert-success');
+                this.$root.showFlash(this.isEditing ? 'Service updated successfully!' : 'Service added successfully!', 'alert-success');
                 this.$router.push('/admin_dashboard');
               } else {
                 const errorData = await res.json();
@@ -117,7 +117,7 @@ export default {
               });
           
               if (res.ok) {
-                this.$root.showFlash('Service deleted!', 'alert-success');
+                this.$root.showFlash('Service deleted successfully!', 'alert-success');
                 this.$router.push('/admin_dashboard');
               } else {
                 const errorData = await res.json().catch(() => null); 

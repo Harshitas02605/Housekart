@@ -58,7 +58,7 @@ export default {
             localStorage.setItem('email',data.email)
             localStorage.setItem('role',data.role)
             localStorage.setItem('user_id',data.user_id)
-            this.$root.showFlash('Registered, please fill up other details!', 'info');
+            this.$root.showFlash('Registered, please fill up other details!', 'alert-success');
           
             if (localStorage.getItem('role') == 'customer') {
               this.$router.push('/customer_signup');

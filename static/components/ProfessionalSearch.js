@@ -8,7 +8,7 @@ export default{
               <option value="pincode">Pincode</option>
             </select>
   
-            <input class="form-control form-control-lg" v-model="searchQuery" type="search" placeholder="Search" aria-label="Search">
+            <input class="form-control form-control-lg" v-model="searchQuery" type="search" placeholder="Search for closed requests" aria-label="Search">
   
             <div class="input-group-append">
               <button class="btn btn-outline-success btn-lg" type="submit">Search</button>
@@ -17,7 +17,7 @@ export default{
         </form>
       </div>
       
-      <h2 v-if="searchresult && searchresult.length" class="container d-flex justify-content-center my-4">Search Results</h2>
+      <h5 v-if="searchresult && searchresult.length" class="container d-flex justify-content-center my-4">Search Results</h5>
 <h2 v-else class="my-4 container d-flex justify-content-center">No results to display</h2>
 
 <table v-if="searchresult && searchresult.length" class="table table-striped">

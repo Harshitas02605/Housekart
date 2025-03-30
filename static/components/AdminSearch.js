@@ -10,7 +10,7 @@ export default {
               <option value="pincode">Pincode</option>
             </select>
   
-            <input class="form-control form-control-lg" v-model="searchQuery" type="search" placeholder="Search" aria-label="Search">
+            <input class="form-control form-control-lg" v-model="searchQuery" type="search" placeholder="search for professional service provider" aria-label="Search">
   
             <div class="input-group-append">
               <button class="btn btn-outline-success btn-lg" type="submit">Search</button>
@@ -21,7 +21,7 @@ export default {
 
     <h2 v-if="searchresult && searchresult.length" class="container d-flex justify-content-center my-4">Search Results</h2>
 <h2 v-else class="my-4 container d-flex justify-content-center">No results to display</h2>
-
+<p v-if="searchresult && searchresult.length" class="my-4 container d-flex justify-content-center" style="color: #FF6392;">Please click on service provider name to view submitted verification document</p>
 <table v-if="searchresult && searchresult.length" class="table table-striped">
   <thead>
     <tr>
@@ -30,7 +30,6 @@ export default {
       <th>Full Name</th>
       <th>Age</th>
       <th>Contact</th>
-      <th>Document</th>
       <th>Experience</th>
       <th>Service Type</th>
       <th>Service Description</th>
@@ -43,12 +42,9 @@ export default {
     <tr v-for="(professional, index) in searchresult" :key="index">
       <td>{{ index + 1 }}</td>
       <td>{{ professional.email }}</td>
-      <td>{{ professional.full_name }}</td>
+     <a :href="'/uploads/' + professional.document" target="_blank"><td>{{ professional.full_name }}</td></a>
       <td>{{ professional.age }}</td>
       <td>{{ professional.contact }}</td>
-      <td>
-        <a :href="'/uploads/' + professional.document" target="_blank">View Document</a>
-      </td>
       <td>{{ professional.experience }}</td>
       <td>{{ professional.service_type }}</td>
       <td>{{ professional.service_description }}</td>
@@ -143,7 +139,7 @@ export default {
         });
       
         if (res.ok) {
-          this.$root.showFlash('User removed from database successfully!', 'alert-warning');
+          this.$root.showFlash('User removed successfully!', 'alert-warning');
           const index = this.searchresult.findIndex(user => user.id === userId);
           if (index !== -1) {
             this.searchresult.splice(index, 1);

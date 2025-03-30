@@ -1,4 +1,4 @@
-from flask import current_app as app, render_template
+from flask import current_app as app, render_template, send_file
 from flask_security import  auth_required, roles_required
 from application.models import db, User, Service, ServiceRequest
 from flask import current_app as app, jsonify, request
@@ -7,7 +7,10 @@ from application.security import datastore
 from application.models import db, User, Customer, ServiceProfessional
 from flask import send_from_directory
 from datetime import datetime
-
+import flask_excel as excel
+from application.tasks import create_professional_closed_service_request_file
+from celery.result import AsyncResult
+from application.instances import cache
 
 @app.get('/')
 def home():
@@ -17,14 +20,38 @@ def home():
 def uploaded_file(filename):
     return send_from_directory('uploads', filename)
 
+@cache.cached(timeout=50)
+@app.get('/test_cache')
+def test_cache():
+    return {"message": "This is cached!"}
+
+@app.get('/set_cache')
+def set_cache():
+    cache.set('debug_key', 'Testing Redis!', timeout=300)
+    return jsonify({"message":"Key has been set"})
+
+@app.get('/get_cache')
+def get_cache():
+    value = cache.get('debug_key')
+    if value:
+        return value
+    else:
+        jsonify({"message":"Key has been set"})
+
+
+
+# returns all users
+@cache.cached(timeout=300)
 @app.get('/admin_backend')
 @auth_required("token")
 @roles_required("admin")
 def adminpage():
-    all_active_customers = User.query.all()
-    return jsonify({"all_active_customers":all_active_customers})
+    all_users = User.query.all()
+    return jsonify({"all_active_customers":all_users})
 
 
+#makes active true so user can login
+@cache.cached(timeout=300)
 @app.post('/approve_user/user/<int:id>')
 @auth_required("token")
 @roles_required("admin")
@@ -36,12 +63,13 @@ def approve_professional(id):
     db.session.commit()
     return jsonify({"message":"User was approved successfully"})
 
+
+#admin can block user so he/she wont be able to login
 @app.post('/block_user/user/<int:id>')
 @auth_required("token")
 @roles_required("admin")
 def block_professional(id):
     user = User.query.get(id)
-    print(user.roles)
     if not user:
         return jsonify({"message":"User not found"}), 404
     user.active = False
@@ -49,17 +77,27 @@ def block_professional(id):
     return jsonify({"message":"User was blocked successfully"})
 
 
+#delete user just professional
 @app.post('/delete_user/user/<int:id>')
 @auth_required("token")
 @roles_required("admin")
 def delete_professional(id):
     user = User.query.get(id)
-    if not user :
-        return jsonify({"message":"User not found"}), 404
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    
+    professional = ServiceProfessional.query.filter_by(email=user.email).first()
+    if professional:
+        db.session.delete(professional)
+
     db.session.delete(user)
     db.session.commit()
-    return jsonify({"message":"User was deleted from databse successfully"})
+    return jsonify({"message": "User was deleted from database successfully"})
 
+
+
+#Handling Login functionality
+@cache.cached(timeout=300)
 @app.post('/user_login_backend')
 def user_login():
     data = request.get_json()
@@ -72,22 +110,29 @@ def user_login():
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    if user and not user.active:
+    if user and not user.active and any(role.name == 'customer' for role in user.roles):
+        return jsonify({"message": "Admin has blocked this customer"}), 404
+
+
+    if user and not user.active :
         return jsonify({"message":"Service professional not approved yet"}), 404
-    
-    
+
     if check_password_hash(user.password, data.get("password")):
         return jsonify({"token":user.get_auth_token(),
                         "email":user.email,
                         "role":user.roles[0].name,
                         "active":user.active,
                         "customer_id" : user.customer[0].id if user.customer else None,
-                        "professional_id":user.service_professional[0].id if user.service_professional else None
+                        "professional_id":user.service_professional[0].id if user.service_professional else None,
+                        "customer_name" : user.customer[0].full_name if user.customer else None,
+                        "professional_name":user.service_professional[0].full_name if user.service_professional else None
 }),200
     else:
         return jsonify({"message":"Wrong Password"}),400
     
 
+
+#create user profile
 @app.route('/create_user_backend', methods=['POST'])
 def create_user():
     try:
@@ -108,7 +153,6 @@ def create_user():
             datastore.create_user(email=email, password=generate_password_hash(password), roles=[role], active=active_status)
             db.session.commit()
             user = datastore.find_user(email=email)
-            print(user)
             return jsonify({"token":user.get_auth_token(),
                         "password":user.password,
                         "role":user.roles[0].name, 
@@ -121,14 +165,16 @@ def create_user():
 
         
     except Exception as e:
-        print("Error:", e)
         return jsonify({"error": str(e)}), 500
 
+
+
+#get user details and profile info acc to his role
+@cache.cached(timeout=300)
 @app.get('/user_details/<int:user_id>')
 @app.get('/user_details')
 @auth_required('token')
 def get_user_details(user_id=None):
-    # Fetch user(s) based on user_id
     if user_id is not None:
         user = User.query.get(user_id)
         if not user:
@@ -137,7 +183,7 @@ def get_user_details(user_id=None):
     else:
         users = User.query.all()
 
-    # Extract user data safely
+    
     def get_user_data(user):
         return {
             "id": user.id,
@@ -171,17 +217,8 @@ def get_user_details(user_id=None):
     return jsonify([get_user_data(user) for user in users])
 
 
-    
-@app.post('/customer_signup_backend')
-def customer_signup():
-    data = request.get_json()
-    print(data)
-    # customer = Customer(**data)
 
-    # db.session.add(customer)
-    # db.session.commit()
-
-
+#handling updating and adding or deletion of a service
 @app.post('/admin_add_service')
 @app.put('/admin_add_service/<int:id>')
 @app.delete('/admin_add_service/<int:id>')
@@ -190,7 +227,6 @@ def customer_signup():
 def manage_service(id=None):
     try:
         if request.method == 'POST':
-            # Add new service
             args = request.get_json()
             if not args:
                 return jsonify({"message": "No data provided"}), 400
@@ -201,7 +237,6 @@ def manage_service(id=None):
             return jsonify({"message": "Service added successfully"}), 201
         
         elif request.method == 'PUT':
-            # Update service
             service = Service.query.get(id)
             if not service:
                 return jsonify({"error": "Service not found"}), 404
@@ -217,7 +252,6 @@ def manage_service(id=None):
             return jsonify({"message": "Service updated successfully"}), 200
         
         elif request.method == 'DELETE':
-            # Delete service
             service = Service.query.get(id)
             if not service:
                 return jsonify({"error": "Service not found"}), 404
@@ -230,7 +264,8 @@ def manage_service(id=None):
         return jsonify({"message": str(e)}), 500
 
 
-
+#gett all service description base price and time to display on admin home proffessional signup and consumer home
+@cache.cached(timeout=300)
 @app.route('/admin_get_service', methods=['GET'])
 def get_service():
     services = Service.query.all()
@@ -247,16 +282,16 @@ def get_service():
 
     return jsonify(service_data)
 
+
+
+
+
 @auth_required("token")
 @app.route('/get_servicerequest', methods=['GET'])
 @app.route('/get_servicerequest/<int:id>', methods=['GET'])
 @app.route('/service_requests', methods=['GET'])
 def get_service_requests():
-    service_requests = db.session.query(ServiceRequest, Customer, ServiceProfessional, Service)\
-        .join(Customer, ServiceRequest.customer_id == Customer.id)\
-        .join(Service, ServiceRequest.service_id == Service.id)\
-        .outerjoin(ServiceProfessional, ServiceRequest.professional_id == ServiceProfessional.id)\
-        .all()
+    service_requests = db.session.query(ServiceRequest, Customer, ServiceProfessional, Service).join(Customer, ServiceRequest.customer_id == Customer.id).join(Service, ServiceRequest.service_id == Service.id).outerjoin(ServiceProfessional, ServiceRequest.professional_id == ServiceProfessional.id).all()
 
     result = []
     for sr, customer, professional, service in service_requests:
@@ -305,7 +340,6 @@ def get_service_requests_customer(id=None):
 @auth_required("token")
 @app.route('/get_serviceprofessional/<string:service>', methods=['GET'])
 def get_service_details_professional(service=None):
-    print(service)
     service_id = Service.query.filter_by(name=service).first().id
     serviceprofessional = ServiceProfessional.query.filter_by(service_type=service).all()
     service_professional_list = []
@@ -316,6 +350,7 @@ def get_service_details_professional(service=None):
         'full_name': sp.full_name,
         'email': sp.email,
         'contact': sp.contact,
+        'document': sp.document,
         'age': sp.age,
         'service_description': sp.service_description,
         'service_type': sp.service_type,
@@ -323,7 +358,6 @@ def get_service_details_professional(service=None):
         'pincode': sp.pincode,
         'address': sp.address,
     })
-    print(service_professional_list)
     return jsonify(service_professional_list)
 
 @auth_required("token")
@@ -334,10 +368,11 @@ def get_service_details_by_location(location=None):
     
     return jsonify([{
         'id': sp.id,
-        'service_id': sp.service.id,
+        'service_id': sp.service_id,
         'full_name': sp.full_name,
         'email': sp.email,
         'contact': sp.contact,
+        'document': sp.document,
         'age': sp.age,
         'service_description': sp.service_description,
         'service_type': sp.service_type,
@@ -358,11 +393,12 @@ def get_service_details_by_pincode(pincode=None):
 
     return jsonify([{
         'id': sp.id,
-       'service_id': sp.service.id,
+       'service_id': sp.service_id,
         'full_name': sp.full_name,
         'email': sp.email,
         'age': sp.age,
         'contact': sp.contact,
+        'document': sp.document,
         'service_description': sp.service_description,
         'service_type': sp.service_type,
         'experience': sp.experience,
@@ -571,8 +607,6 @@ def search_by_location(location):
                 'customer_pincode': closed_req.customer.pincode,
                 'customer_contact': closed_req.customer.contact,
             })
-
-        print(closed_requests_list)
         
         return jsonify(closed_requests_list), 200
     
@@ -608,8 +642,6 @@ def search_by_pincode(pincode):
                 'customer_pincode': closed_req.customer.pincode,
                 'customer_contact': closed_req.customer.contact,
             })
-
-        print(closed_requests_list)
         
         return jsonify(closed_requests_list), 200
     
@@ -677,3 +709,21 @@ def service_requests_professional_count(professional_id=None):
             }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+@app.route('/get_professional_closed_service_request')
+def get_professional_closed_service_request():
+    task = create_professional_closed_service_request_file.delay()
+    return jsonify({"task_id":task.id})
+
+@app.route('/get_file/<task_id>')
+def get_file(task_id):
+    file = AsyncResult(task_id)
+    if file.ready():
+        filename = file.result
+        return send_file(filename,as_attachment=True)
+    else:
+        return jsonify({"message":"File is not ready"}),404
+    
+

@@ -17,7 +17,7 @@ export default {
 
 
 <div v-if="asked_service_professional_details.length > 0">
- <h2 class="my-4">Book A Service for {{ serviceasked.name }} Now (Base Price:- {{ serviceasked.price }} Rs)</h2>
+ <h2 class="my-4 container d-flex justify-content-center">Book A Service for {{ serviceasked.name }} Now (Base Price:- {{ serviceasked.price }} Rs)</h2>
           <table class="table table-striped">
             <thead>
               <tr>
@@ -35,7 +35,7 @@ export default {
               <tr v-for="(professional, index) in asked_service_professional_details" :key="index">
                <td>{{ index + 1 }}</td>
                <td>{{ professional.full_name}}</td>
-               <td>{{ professional.experience }}</td>
+               <td>{{ professional.experience }} yrs</td>
                <td>{{ professional.contact }}</td>
                <td>{{ professional.service_description }}</td>
                <td>{{ professional.pincode }}</td>
@@ -50,7 +50,7 @@ export default {
   
         <div>
           <h2 class="my-4" v-if="customer_service_requests.length === 0">No Service Requests Found</h2>
-<h2 class="my-4" v-else>Service Request Details</h2>
+<h2 class="my-4 container d-flex justify-content-center" v-else>Service Request Details</h2>
           <table class="table table-striped">
             <thead>
   <tr>
@@ -68,46 +68,49 @@ export default {
   <tr v-for="(service, index) in customer_service_requests" :key="index">
     <td>{{ index + 1 }}</td>
     <td>{{ service.date_of_request }}</td>
-
-    <!-- Service Status with Conditional Class -->
     <td :class="{
-      'text-warning': service.service_status === 'Requested',
+      'text-danger': service.service_status === 'Requested',
       'text-success': service.service_status === 'Completed',
-      'text-danger': service.service_status === 'Pending'
+      'text-warning': service.service_status === 'Pending'
     }">
       {{ service.service_status }}
     </td>
 
-    <!-- Professional Details or Placeholder -->
     <td :class="{'text-danger': !service.professional_name || service.service_status === 'Requested'}">
       {{ service.professional_name || 'Yet to get accepted' }}
     </td>
+
     <td :class="{'text-danger': !service.professional_contact || service.service_status === 'Requested'}">
       {{ service.professional_contact || 'Yet to get accepted' }}
     </td>
+
     <td :class="{'text-danger': !service.professional_experience || service.service_status === 'Requested'}">
-      {{ service.professional_experience || 'Yet to get accepted' }}
+      {{ service.professional_experience || 'Yet to get accepted' }} yrs
     </td>
+
     <td v-if="service.service_status==='Requested' " :class="{'text-danger': !service.date_of_completion || service.service_status === 'Requested'}">
       Yet to get accepted
     </td>
-    <td v-else :class="{'text-danger': !service.date_of_completion || service.service_status === 'Requested'}">
-      {{ service.service_status || 'Yet to get accepted'}}
+
+    <td v-if="service.service_status==='Pending' " :class="{'text-danger': !service.date_of_completion || service.service_status === 'Requested'}">
+      N/A
     </td>
 
-    <!-- Action Button for Pending Status -->
+    <td v-if="service.service_status==='Completed' " :class="{'text-danger': !service.date_of_completion || service.service_status === 'Requested'}">
+      {{ service.date_of_completion || 'Yet to get accepted'}}
+    </td>
+
+    
+
     <td>
-  <!-- Close Service Button for Pending -->
   <button v-if="service.service_status === 'Pending'" class="btn btn-info" @click="closeService(service.id)">
     Close Service
   </button>
 
-  <!-- Edit Request Button for Requested -->
   <button v-if="service.service_status === 'Requested'" class="btn btn-warning" @click="editRequest(service.id)">
     Edit and Delete Request
   </button>
 
-  <!-- Status Display for Completed -->
   <p v-if="service.service_status === 'Completed'" class="text-danger">
     Closed
   </p>

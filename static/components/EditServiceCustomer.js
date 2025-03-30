@@ -124,7 +124,7 @@ export default {
         }
       });
       if (res.ok) {
-        this.$root.showFlash('Service rejected!', 'alert-warning');
+        this.$root.showFlash('Service Rejected!', 'alert-warning');
         this.$router.push('/customer_home')
       } else {
         const error = await res.json();

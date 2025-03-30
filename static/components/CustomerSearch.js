@@ -4,13 +4,13 @@ export default {
           <form class="form-inline w-100" style="max-width: 800px;" @submit.prevent="submit">
             <div class="input-group w-100">
               <select class="form-control form-control-lg" v-model="selectedCategory" style="max-width: 150px;">
-                <option disabled value="Category">Category</option>
+                <option disabled value="Category">Search by</option>
                 <option value="address">Location</option>
-                <option value="name">Name</option>
+                <option value="name">Service Type</option>
                 <option value="pincode">Pincode</option>
               </select>
   
-              <input class="form-control form-control-lg" v-model="searchQuery" type="search" placeholder="Search" aria-label="Search">
+              <input class="form-control form-control-lg" v-model="searchQuery" type="search" placeholder="Search for available services" aria-label="Search">
   
               <div class="input-group-append">
                 <button class="btn btn-outline-success btn-lg" type="submit">Search</button>
@@ -127,6 +127,7 @@ export default {
   
           if (res.ok) {
             this.$root.showFlash('Your Service has been booked!', 'alert-success');
+            this.$router.push('/customer_home')
           } else {
             const errorData = await res.json();
             this.$root.showFlash(errorData.message || 'Error Occurred!', 'alert-danger');

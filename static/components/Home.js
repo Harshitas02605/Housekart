@@ -16,10 +16,13 @@ export default {
       navigateToLogin() {
         this.$router.push('/user_login');
       }
+    },
+    created(){
+      localStorage.clear()
     }
   };
   
-  // Add styles using scoped tag
+
   const style = document.createElement('style');
   style.textContent = `
     html, body {

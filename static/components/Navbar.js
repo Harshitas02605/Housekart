@@ -2,11 +2,17 @@ export default {
     template: `<nav class="navbar navbar-expand-lg navbar-light bg-light container-fluid" style="background-color: #FFE45E !important;">
       
       
-    <div><h1>HouseKart</h1></div>
+<div onclick="window.location.href='/'" style="cursor: pointer;">
+  <h1>HouseKart</h1>
+
+
+</div>
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
         <ul class="navbar-nav">
 
-
+          <li class="nav-item active" v-if="islogged">
+            <a class="nav-link">{{nameToShow}}</a>
+          </li>
           <li class="nav-item active" v-if="islogged">
             <a class="nav-link" @click.prevent="home">🏠︎-Home </a>
           </li>
@@ -36,10 +42,14 @@ export default {
       </div>
     </nav>`,
     data(){
-        return{
-            role: localStorage.getItem('role'),
-            islogged: localStorage.getItem('auth-token')
-    }},
+      const customerName = localStorage.getItem('customer_name') !== 'null' ? localStorage.getItem('customer_name') : null;
+const professionalName = localStorage.getItem('professional_name') !== 'null' ? localStorage.getItem('professional_name') : null;
+
+return {
+  role: localStorage.getItem('role'),
+  islogged: !!localStorage.getItem('auth-token'),
+  nameToShow: customerName || professionalName || 'Admin',
+      }},
     methods : {
         async home() {
             if (this.role == 'admin') {
@@ -108,5 +118,11 @@ export default {
             localStorage.clear();
             await this.$router.push('/create_user')
         }
+    },
+    created(){
+      const customerName = localStorage.getItem('customer_name');
+const professionalName = localStorage.getItem('professional_name');
+
+const nameToShow = customerName || professionalName;
     }
 }

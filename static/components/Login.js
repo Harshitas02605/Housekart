@@ -44,6 +44,8 @@ export default {
         if (res.ok) {
           localStorage.setItem('customer_id', data.customer_id);
           localStorage.setItem('professional_id', data.professional_id);
+          localStorage.setItem('customer_name', data.customer_name);
+          localStorage.setItem('professional_name', data.professional_name);
           localStorage.setItem('auth-token', data.token);
           localStorage.setItem('role', data.role);
           if (data.role == 'admin'){
@@ -60,7 +62,7 @@ export default {
           
           }
         else if (data.message == "Wrong Password" && res.status===400){
-          alert('Wrong credentials, please try again!');
+          this.$root.showFlash('Wrong Password!', 'alert-danger')
           setTimeout(() => {
             this.password = null;
           }, 500)
@@ -76,6 +78,10 @@ export default {
         
         else if (data.message == "Service professional not approved yet"){
           this.$root.showFlash('Kindly wait until admin approves your application!', 'alert-info');
+        }
+
+        else if (data.message == "You have been blocked"){
+          this.$root.showFlash('You have been blocked', 'alert-warning');
         }
 
 

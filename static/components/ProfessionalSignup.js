@@ -14,13 +14,13 @@ export default{
   </div>
 
   <div class="form-group">
-    <label for="age">Age</label>
+    <label for="age" min="18" max="65">Age</label>
     <input type="number" class="form-control" id="age" placeholder="Enter your age" v-model="professional_signup.age">
   </div>
 
   <div class="form-group">
-    <label for="contact">Contact Number</label>
-    <input type="text" class="form-control" id="contact" placeholder="Enter your contact number" v-model="professional_signup.contact">
+    <label for="contact" min="0000000000" max="9999999999">Contact Number</label>
+    <input type="number" class="form-control" id="contact" placeholder="Enter your contact number" v-model="professional_signup.contact">
   </div>
 
   <div class="form-group">
@@ -36,7 +36,7 @@ export default{
 
   <div class="form-group">
     <label for="service_description">Service Description</label>
-    <textarea class="form-control" id="service_description" rows="3" placeholder="The service description above represents what HouseKart expects for this category. If you offer any specialized services within this category, please describe them in the given space." v-model="professional_signup.service_description"></textarea>
+    <textarea class="form-control" id="service_description" rows="3" placeholder="The service description above represents what HouseKart expects for this category. If you offer any specialized services within this category, please describe them in the given space. This is what consumer will get to see while booking a service form you" v-model="professional_signup.service_description"></textarea>
   </div>
 
   <div class="form-group">

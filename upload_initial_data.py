@@ -23,14 +23,5 @@ except Exception as e:
     print(f"Error Occurred: {e}")
 
 
-    # admin = Role(id=1, name='Admin', description='Admin description')
-    # db.session.add(admin)
-
-    # customer = Role(id=2, name='Customer', description= 'Customer description')
-    # db.session.add(customer)
-
-    # serviceprofessional = Role(id=3, name='ServiceProfessional', description='ServiceProfessional description')
-    # db.session.add(serviceprofessional)
-
-    # db.session.commit()
+   
     

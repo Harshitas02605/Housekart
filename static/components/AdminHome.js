@@ -1,7 +1,28 @@
 export default {
     template: `
-      <div class="container-fluid">
-      <h2 class="my-4">Services</h2>
+      <div>
+<br>
+
+<div style="display: flex; justify-content: flex-end;">
+
+  <button v-if="!iswaiting" @click.prevent="getreport" class="btn btn-success">
+    Generate a CSV report of Service sequests closed by Service Professionals
+  </button>
+
+   <button v-else class="btn btn-warning" disabled>
+    Waiting...
+  </button>
+  
+</div>
+
+
+
+
+
+
+
+<div>
+      <h2 class="my-4 container d-flex justify-content-center">Services</h2>
 <table class="table table-striped">
   <thead>
     <tr>
@@ -25,8 +46,17 @@ export default {
   </tbody>
   <button class="btn btn-primary" @click.prevent="goToAddService">Add Service</button>
 </table>
+</div>
 
-        <h2 class="my-4">Consumer Details</h2>
+
+
+
+
+
+
+<div>
+
+        <h2 class="my-4 container d-flex justify-content-center">Consumer Details</h2>
         <table class="table table-striped">
           <thead>
             <tr>
@@ -57,17 +87,27 @@ export default {
             </tr>
           </tbody>
         </table>
+
+        </div>
         <br>
-        <h2 class="my-4">Professional Details</h2>
-        <table class="table table-striped">
+
+
+
+
+
+
+        <div >
+        <h2 class="my-4 container d-flex justify-content-center">Professional Details</h2>
+        <p class="my-4 container d-flex justify-content-center" style="color: #FF6392;">Please click on service provider name to view submitted verification document</p>
+
+        <table class="table table-striped text-nowrap ">
           <thead>
             <tr>
-              <th>Sr No</th>
+            <th>Sr no</th>
               <th>Email</th>
               <th>Full Name</th>
               <th>Age</th>
               <th>Contact</th>
-              <th>Document</th>
               <th>Experience</th>
               <th>Service Type</th>
               <th>Service Description</th>
@@ -78,16 +118,11 @@ export default {
           </thead>
           <tbody>
   <tr v-for="(user, index) in professionals" :key="index">
-    <td>{{ index + 1 }}</td>
-    <td>{{ user.service_professional.email }}</td>
-    <td>{{ user.service_professional.full_name }}</td>
+  <td>{{ index + 1 }}</td>  
+  <td>{{ user.service_professional.email }}</td>
+    <a :href="'/uploads/' + user.service_professional.document" target="_blank"><td>{{ user.service_professional.full_name }}</td></a>
     <td>{{ user.service_professional.age }}</td>
     <td>{{ user.service_professional.contact }}</td>
-    <td>
-  <a :href="'/uploads/' + user.service_professional.document" target="_blank">View Document</a>
-</td>
-
-
     <td>{{ user.service_professional.experience }}</td>
     <td>{{ user.service_professional.service_type }}</td>
     <td>{{ user.service_professional.service_description }}</td>
@@ -96,7 +131,9 @@ export default {
     <td>
       <div>
         <button class="btn btn-success" v-if="!user.active" @click="approveUser(user.id)">Enable Access</button>
-        <button class="btn btn-warning"  v-if="!user.active" @click="rejectUser(user.id)">Remove</button>
+        <br v-if="!user.active"><button class="btn btn-warning"  v-if="!user.active" @click="rejectUser(user.id)">Remove</button>
+        <div>
+        </div>
         <button class="btn btn-danger"  v-if="user.active" @click="blockUser(user.id)">Block</button>
       </div>
     </td>
@@ -104,8 +141,16 @@ export default {
 </tbody>
 
         </table>
+        </div>
+
+
+
+
+
+
         <br>
-        <h2 class="my-4">Service Request Details</h2>
+        <div>
+        <h2 class="my-4 container d-flex justify-content-center">Service Request Details</h2>
         <table class="table table-striped">
           <thead>
             <tr>
@@ -121,8 +166,13 @@ export default {
             </tr>
           </thead>
           <tbody>
-  <tr v-for="(servicerequest, index) in servicerequest" :key="index">
-    <td>{{ index + 1 }}</td>
+<tr v-for="(servicerequest, index) in servicerequest" 
+    :key="index"
+    :class="{
+      'text-success': servicerequest.status === 'Completed',
+      'text-danger': servicerequest.status === 'Requested',
+      'text-warning': servicerequest.status === 'Pending'
+    }">    <td>{{ index + 1 }}</td>
     <td>{{ servicerequest.service_name }}</td>
     <td>{{ servicerequest.professional_name }}</td>
     <td>{{ servicerequest.customer_name }}</td>
@@ -137,6 +187,7 @@ export default {
 
         </table>
       </div>
+      </div>
     `,
 
 
@@ -147,7 +198,8 @@ export default {
         authToken: localStorage.getItem('auth-token'),
         customers:[],
         professionals:[],
-        servicerequest:[]
+        servicerequest:[],
+        iswaiting : false
       };
     },
     
@@ -259,7 +311,7 @@ export default {
             });
           
             if (res.ok) {
-              this.$root.showFlash('User removed from database successfully!', 'alert-warning');
+              this.$root.showFlash('User removed successfully!', 'alert-warning');
           
               let index = this.professionals.findIndex(user => user.id === userId);
               let targetArray = this.professionals;
@@ -291,7 +343,7 @@ export default {
           });
         
           if (res.ok) {
-            this.$root.showFlash('User removed from database successfully!', 'alert-warning');
+            this.$root.showFlash('Professional blocked successfully!', 'alert-warning');
         
             let index = this.professionals.findIndex(user => user.id === userId);
             let targetArray = this.professionals;
@@ -353,6 +405,24 @@ export default {
               time_required: service.time_required
             }
           });
+        },
+
+        async getreport() {
+          this.iswaiting = true
+          const res = await fetch('/get_professional_closed_service_request')
+          const data = await res.json()
+          if (res.ok){
+            const taskid = data['task_id']
+            const intv = setInterval( async ()=>{
+              const csv_res = await fetch(`/get_file/${taskid}`)
+              if (csv_res.ok){
+                this.iswaiting=false
+                clearInterval(intv)
+                window.location.href = `/get_file/${taskid}`
+                alert("File has been downloaded")
+              }
+            },1000)
+          }
         }
         
     }

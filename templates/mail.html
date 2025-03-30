@@ -1,0 +1,34 @@
+<html>
+<head>
+  <title>Monthly Activity Report</title>
+</head>
+<body>
+  <div>
+    <h1>Monthly Activity Report - {{ customer_name }}</h1>
+    <p>Dear {{ customer_name }},</p>
+    <p>Following is your report for last month</p>
+
+   
+    <h2 align="center">Service Summary</h2>
+    <table border="2" cellpadding="15" cellspacing="0" align="center">
+      <tr>
+        <th>Total Requests</th>
+        <th>Completed Requests</th>
+        <th>Pending Requests</th>
+      </tr>
+      <tr>
+        <td>{{ total_requests }}</td>
+        <td>{{ completed_requests }}</td>
+        <td>{{ pending_requests }}</td>
+      </tr>
+    </table>
+
+  
+
+    <div>
+      <p>Thank you for using our services. For any queries, feel free to contact us.</p>
+      <p>Best Regards,<br> HouseKart</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 export default{
     template: `<div>
     <div>
- <h2 class="my-4">Today's Request</h2>
+ <h5 class="my-4 container d-flex justify-content-center">Pending Requests</h5>
           <table class="table table-striped">
             <thead>
               <tr>
@@ -31,7 +31,7 @@ export default{
           </table>
 
 
-          <h2 class="my-4">Current Ongoing Service</h2>
+          <h5 class="my-4 container d-flex justify-content-center">Current Ongoing Service</h5>
           <table class="table table-striped">
             <thead>
               <tr>
@@ -62,7 +62,7 @@ export default{
 
 
 
-<h2 class="my-4">Closed Service</h2>
+<h5 class="my-4 container d-flex justify-content-center">Closed Service</h5>
           <table class="table table-striped">
             <thead>
               <tr>
@@ -213,7 +213,7 @@ data() {
         await this.getopenservices();
         await this.getongoingservices();
       } else if (res.status === 400) {
-        this.$root.showFlash('You already have one incomplete service request', 'alert-danger');
+        this.$root.showFlash('You can accept only request at a time', 'alert-danger');
       } else {
         const error = await res.json();
         console.error('Error:', error);

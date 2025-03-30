@@ -4,7 +4,7 @@ export default {
       <div class="container">
         <h2 class="my-4 text-center">Service Request Summary</h2>
 
-        <h5> Your Total Service Requests on <span class="text-primary">HouseKart</span> till date: {{ total }}</h5>
+        <h5> Total Service Requests on <span class="text-primary">HouseKart</span> till date: {{ total }}</h5>
 
 
         

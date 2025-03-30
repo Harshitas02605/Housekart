@@ -13,7 +13,9 @@ export default {
     },
     methods: {
       navigateToLogin() {
-        this.$router.push('/user_login'); // Adjust the route if necessary
+        this.$router.push('/user_login');
+        localStorage.clear()
+        // Adjust the route if necessary
       }
     }
   }

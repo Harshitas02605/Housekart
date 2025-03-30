@@ -5,6 +5,7 @@ from flask import jsonify
 import os
 from flask import request, current_app
 from werkzeug.utils import secure_filename
+from application.instances import cache
 
 
 
@@ -136,6 +137,17 @@ class ServiceProfessionalAPI(Resource):
         db.session.add(service_professional)
         db.session.commit()
         return {'message': 'Service Professional was successfully added to database'}
+    
+    @marshal_with(service_professional_fields)
+    def delete(self, professional_id):
+        service_professional = ServiceProfessional.query.get(professional_id)
+        
+        if not service_professional:
+            return {'error': 'Service Professional not found'}, 404
+        
+        db.session.delete(service_professional)
+        db.session.commit()
+        return {'message': 'Service Professional deleted successfully'}
 
 
 class CustomerAPI(Resource):
@@ -154,6 +166,7 @@ class CustomerAPI(Resource):
 class ServiceAPI(Resource):
     @auth_required('token')
     @marshal_with(service_fields)
+    @cache.cached(timeout=50)
     def get(self):
         all_services = Service.query.all()
         services_data = [
@@ -168,6 +181,7 @@ class ServiceAPI(Resource):
         ]
         return jsonify(services_data)
     
+    @cache.cached(timeout=50)
     @auth_required('token')
     @roles_required('admin')
     def post(self):
@@ -179,6 +193,7 @@ class ServiceAPI(Resource):
 
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=50)
     def put(self, service_id):
         args = service_parser.parse_args()
         service = Service.query.get(service_id)
