@@ -379,6 +379,7 @@ def get_service_details_by_location(location=None):
         'experience': sp.experience,
         'pincode': sp.pincode,
         'address': sp.address,
+        'active':sp.user.active
     } for sp in serviceprofessional])
 
 
@@ -404,6 +405,7 @@ def get_service_details_by_pincode(pincode=None):
         'experience': sp.experience,
         'pincode': sp.pincode,
         'address': sp.address,
+        'active':sp.user.active
     } for sp in serviceprofessionals])
 
 
@@ -580,13 +582,14 @@ def close_service_request_professional(id):
 
 
 
-@app.route('/get_searchresult_professional_by_location/<string:location>', methods=['GET'])
-def search_by_location(location):
+@app.route('/get_searchresult_professional_by_location/<int:id>/<string:location>', methods=['GET'])
+def search_by_location(id,location):
     try:
         closed_requests = db.session.query(ServiceRequest).join(Customer).filter(
-            ServiceRequest.service_status == 'Completed',
-            Customer.address.ilike(f"%{location}%")
-        ).all()
+        ServiceRequest.service_status == 'Completed',
+        Customer.address.ilike(f"%{location}%"),
+        ServiceRequest.professional_id == id
+    ).all()
         
         if not closed_requests:
             return jsonify({"message": "No closed services found for this professional."}), 404
@@ -615,13 +618,14 @@ def search_by_location(location):
 
 
 
-@app.route('/get_searchresult_professional_by_pincode/<string:pincode>', methods=['GET'])
-def search_by_pincode(pincode):
+@app.route('/get_searchresult_professional_by_pincode/<int:id>/<string:pincode>', methods=['GET'])
+def search_by_pincode(id,pincode):
     try:
         closed_requests = db.session.query(ServiceRequest).join(Customer).filter(
-            ServiceRequest.service_status == 'Completed',
-            Customer.pincode.ilike(f"%{pincode}%")
-        ).all()
+        ServiceRequest.service_status == 'Completed',
+        Customer.address.ilike(f"%{pincode}%"),
+        ServiceRequest.professional_id == id
+    ).all()
         
         if not closed_requests:
             return jsonify({"message": "No closed services found for this professional."}), 404

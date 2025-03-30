@@ -29,11 +29,11 @@ celery_app = celery_init_app(app)
 
 @celery_app.on_after_configure.connect
 def send_mails(sender, **kwargs):
-    sender.add_periodic_task(crontab(hour=12, minute=26, day_of_month=29),monthly_mail_sending_to_customers.s(to='admin@housekart.com',subject='Previous Month Report Mail'))
+    sender.add_periodic_task(crontab(hour=21, minute=3, day_of_month=30),monthly_mail_sending_to_customers.s(to='admin@housekart.com',subject='Previous Month Report Mail'))
 
 @celery_app.on_after_configure.connect
 def send_reminder_mail(sender, **kwargs):
-    sender.add_periodic_task(crontab(hour=12, minute=26),task_incomplete_mail_to_professional.s(to='admin@housekart.com',subject='Service Pending Reminder❗'))
+    sender.add_periodic_task(crontab(hour=21, minute=3),task_incomplete_mail_to_professional.s(to='admin@housekart.com',subject='Service Pending Reminder❗'))
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -55,6 +55,7 @@ export default{
             searchQuery: '',
             searchresult: [],
             authToken: localStorage.getItem('auth-token'),
+            professional_id: localStorage.getItem('professional_id'),
         }
     },
     methods:{
@@ -66,10 +67,10 @@ export default{
         
               let url = '';
               if (this.selectedCategory === 'address') {
-                url = `/get_searchresult_professional_by_location/${encodeURIComponent(this.searchQuery)}`;
+                url = `/get_searchresult_professional_by_location/${encodeURIComponent(this.professional_id)}/${encodeURIComponent(this.searchQuery)}`;
               }
               else if (this.selectedCategory === 'pincode') {
-                url = `/get_searchresult_professional_by_pincode/${encodeURIComponent(this.searchQuery)}`;
+                url = `/get_searchresult_professional_by_pincode/${encodeURIComponent(this.professional_id)}/${encodeURIComponent(this.searchQuery)}`;
               }
         
               try {
